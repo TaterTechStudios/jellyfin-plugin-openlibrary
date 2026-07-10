@@ -52,21 +52,14 @@ namespace Jellyfin.Plugin.OpenLibrary.Providers
                 return Enumerable.Empty<RemoteImageInfo>();
             }
 
-            var coverId = await GetCoverId(editionKey, cancellationToken).ConfigureAwait(false);
-            if (coverId == null)
-            {
-                return Enumerable.Empty<RemoteImageInfo>();
-            }
+            var coverIds = await GetCoverIds(editionKey, cancellationToken).ConfigureAwait(false);
 
-            return new[]
+            return coverIds.Select(coverId => new RemoteImageInfo
             {
-                new RemoteImageInfo
-                {
-                    ProviderName = Name,
-                    Url = $"https://covers.openlibrary.org/b/id/{coverId}-L.jpg",
-                    Type = ImageType.Primary
-                }
-            };
+                ProviderName = Name,
+                Url = $"https://covers.openlibrary.org/b/id/{coverId}-L.jpg",
+                Type = ImageType.Primary
+            });
         }
 
         /// <inheritdoc />
@@ -76,7 +69,7 @@ namespace Jellyfin.Plugin.OpenLibrary.Providers
             return await httpClient.GetAsync(url, cancellationToken).ConfigureAwait(false);
         }
 
-        private async Task<long?> GetCoverId(string editionKey, CancellationToken cancellationToken)
+        private async Task<List<long>> GetCoverIds(string editionKey, CancellationToken cancellationToken)
         {
             // The olid cover endpoint returns a blank placeholder image with a 200 status
             // when an edition has no cover, so the edition record's "covers" array has to
@@ -84,6 +77,7 @@ namespace Jellyfin.Plugin.OpenLibrary.Providers
             var editionUrl = $"https://openlibrary.org/books/{editionKey}.json";
 
             using var httpClient = _httpClientFactory.CreateClient(PluginServiceRegistrator.OpenLibraryHttpClientName);
+            var coverIds = new List<long>();
 
             try
             {
@@ -92,7 +86,7 @@ namespace Jellyfin.Plugin.OpenLibrary.Providers
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogWarning("OpenLibrary edition lookup failed with status: {StatusCode} for: {EditionKey}", response.StatusCode, editionKey);
-                    return null;
+                    return coverIds;
                 }
 
                 var jsonContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
@@ -105,22 +99,22 @@ namespace Jellyfin.Plugin.OpenLibrary.Providers
                     {
                         if (cover.ValueKind == JsonValueKind.Number && cover.TryGetInt64(out var id) && id > 0)
                         {
-                            return id;
+                            coverIds.Add(id);
                         }
                     }
                 }
 
-                return null;
+                return coverIds;
             }
             catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
             {
                 _logger.LogWarning("OpenLibrary edition cover lookup timed out for: {EditionKey}", editionKey);
-                return null;
+                return coverIds;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting OpenLibrary edition covers for: {EditionKey}", editionKey);
-                return null;
+                return coverIds;
             }
         }
     }

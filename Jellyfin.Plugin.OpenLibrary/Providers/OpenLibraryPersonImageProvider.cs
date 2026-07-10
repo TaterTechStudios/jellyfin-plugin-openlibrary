@@ -52,21 +52,14 @@ namespace Jellyfin.Plugin.OpenLibrary.Providers
                 return Enumerable.Empty<RemoteImageInfo>();
             }
 
-            var photoId = await GetPhotoId(openLibraryId, cancellationToken).ConfigureAwait(false);
-            if (photoId == null)
-            {
-                return Enumerable.Empty<RemoteImageInfo>();
-            }
+            var photoIds = await GetPhotoIds(openLibraryId, cancellationToken).ConfigureAwait(false);
 
-            return new[]
+            return photoIds.Select(photoId => new RemoteImageInfo
             {
-                new RemoteImageInfo
-                {
-                    ProviderName = Name,
-                    Url = $"https://covers.openlibrary.org/a/id/{photoId}-L.jpg",
-                    Type = ImageType.Primary
-                }
-            };
+                ProviderName = Name,
+                Url = $"https://covers.openlibrary.org/a/id/{photoId}-L.jpg",
+                Type = ImageType.Primary
+            });
         }
 
         /// <inheritdoc />
@@ -76,7 +69,7 @@ namespace Jellyfin.Plugin.OpenLibrary.Providers
             return await httpClient.GetAsync(url, cancellationToken).ConfigureAwait(false);
         }
 
-        private async Task<long?> GetPhotoId(string authorKey, CancellationToken cancellationToken)
+        private async Task<List<long>> GetPhotoIds(string authorKey, CancellationToken cancellationToken)
         {
             // OpenLibrary's olid cover endpoint returns a blank placeholder image with a
             // 200 status when an author has no photo, so the author record's "photos" array
@@ -84,6 +77,7 @@ namespace Jellyfin.Plugin.OpenLibrary.Providers
             var authorUrl = $"https://openlibrary.org/authors/{authorKey}.json";
 
             using var httpClient = _httpClientFactory.CreateClient(PluginServiceRegistrator.OpenLibraryHttpClientName);
+            var photoIds = new List<long>();
 
             try
             {
@@ -92,7 +86,7 @@ namespace Jellyfin.Plugin.OpenLibrary.Providers
                 if (!response.IsSuccessStatusCode)
                 {
                     _logger.LogWarning("OpenLibrary author lookup failed with status: {StatusCode} for: {AuthorKey}", response.StatusCode, authorKey);
-                    return null;
+                    return photoIds;
                 }
 
                 var jsonContent = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
@@ -105,22 +99,22 @@ namespace Jellyfin.Plugin.OpenLibrary.Providers
                     {
                         if (photo.ValueKind == JsonValueKind.Number && photo.TryGetInt64(out var id) && id > 0)
                         {
-                            return id;
+                            photoIds.Add(id);
                         }
                     }
                 }
 
-                return null;
+                return photoIds;
             }
             catch (TaskCanceledException ex) when (ex.InnerException is TimeoutException)
             {
                 _logger.LogWarning("OpenLibrary author photo lookup timed out for: {AuthorKey}", authorKey);
-                return null;
+                return photoIds;
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting OpenLibrary author photos for: {AuthorKey}", authorKey);
-                return null;
+                return photoIds;
             }
         }
     }
