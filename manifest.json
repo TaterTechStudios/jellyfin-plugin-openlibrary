@@ -1,0 +1,20 @@
+[
+  {
+    "guid": "a4df60c5-6ab4-412a-8f79-2cab93fb2bc5",
+    "name": "OpenLibrary",
+    "description": "Provides book and author metadata from OpenLibrary.org for your Jellyfin book libraries. Automatically fetches book descriptions, series information, publication dates, genres, and author biographies from the OpenLibrary API.",
+    "overview": "OpenLibrary metadata provider for Jellyfin",
+    "owner": "TaterTechStudios",
+    "category": "Metadata",
+    "versions": [
+      {
+        "version": "1.0.0.0",
+        "changelog": "Initial release\n- Book metadata provider\n- Author/person metadata provider\n- Support for book descriptions, series, genres, and publication dates\n- Support for author biographies and birth/death dates",
+        "targetAbi": "12.0.0.0",
+        "sourceUrl": "https://github.com/TaterTechStudios/jellyfin-plugin-openlibrary/releases/download/v1.0.0.0/openlibrary_1.0.0.0.zip",
+        "checksum": "23a022d70ac8f84439b13b90a544b1c2",
+        "timestamp": "2026-07-10T21:40:00Z"
+      }
+    ]
+  }
+]
