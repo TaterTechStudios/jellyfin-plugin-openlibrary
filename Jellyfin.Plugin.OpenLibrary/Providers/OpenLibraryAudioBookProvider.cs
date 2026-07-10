@@ -13,20 +13,20 @@ using Microsoft.Extensions.Logging;
 namespace Jellyfin.Plugin.OpenLibrary.Providers
 {
     /// <summary>
-    /// OpenLibrary metadata provider for books.
+    /// OpenLibrary metadata provider for audiobooks.
     /// </summary>
-    public class OpenLibraryProvider : IRemoteMetadataProvider<Book, BookInfo>
+    public class OpenLibraryAudioBookProvider : IRemoteMetadataProvider<AudioBook, SongInfo>
     {
         private readonly OpenLibraryBookLookupService _lookupService;
-        private readonly ILogger<OpenLibraryProvider> _logger;
+        private readonly ILogger<OpenLibraryAudioBookProvider> _logger;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="OpenLibraryProvider"/> class.
+        /// Initializes a new instance of the <see cref="OpenLibraryAudioBookProvider"/> class.
         /// </summary>
-        /// <param name="logger">Instance of the <see cref="ILogger{OpenLibraryProvider}"/> interface.</param>
+        /// <param name="logger">Instance of the <see cref="ILogger{OpenLibraryAudioBookProvider}"/> interface.</param>
         /// <param name="lookupService">Instance of the <see cref="OpenLibraryBookLookupService"/> class.</param>
-        public OpenLibraryProvider(
-            ILogger<OpenLibraryProvider> logger,
+        public OpenLibraryAudioBookProvider(
+            ILogger<OpenLibraryAudioBookProvider> logger,
             OpenLibraryBookLookupService lookupService)
         {
             _logger = logger;
@@ -37,16 +37,16 @@ namespace Jellyfin.Plugin.OpenLibrary.Providers
         public string Name => "OpenLibrary";
 
         /// <inheritdoc />
-        public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(BookInfo searchInfo, CancellationToken cancellationToken)
+        public Task<IEnumerable<RemoteSearchResult>> GetSearchResults(SongInfo searchInfo, CancellationToken cancellationToken)
         {
             _logger.LogInformation("OpenLibrary search for: {Title}", searchInfo.Name);
             return Task.FromResult(Enumerable.Empty<RemoteSearchResult>());
         }
 
         /// <inheritdoc />
-        public async Task<MetadataResult<Book>> GetMetadata(BookInfo info, CancellationToken cancellationToken)
+        public async Task<MetadataResult<AudioBook>> GetMetadata(SongInfo info, CancellationToken cancellationToken)
         {
-            var result = new MetadataResult<Book>();
+            var result = new MetadataResult<AudioBook>();
 
             if (string.IsNullOrWhiteSpace(info.Name))
             {
@@ -61,7 +61,7 @@ namespace Jellyfin.Plugin.OpenLibrary.Providers
                     return result;
                 }
 
-                var book = new Book
+                var audioBook = new AudioBook
                 {
                     Name = info.Name,
                     Overview = details.Overview,
@@ -72,15 +72,15 @@ namespace Jellyfin.Plugin.OpenLibrary.Providers
 
                 foreach (var genre in details.Genres)
                 {
-                    book.AddGenre(genre);
+                    audioBook.AddGenre(genre);
                 }
 
                 if (!string.IsNullOrEmpty(details.EditionKey))
                 {
-                    book.SetProviderId("OpenLibraryEdition", details.EditionKey);
+                    audioBook.SetProviderId("OpenLibraryEdition", details.EditionKey);
                 }
 
-                result.Item = book;
+                result.Item = audioBook;
                 result.HasMetadata = true;
                 result.People = details.People.ToList();
             }

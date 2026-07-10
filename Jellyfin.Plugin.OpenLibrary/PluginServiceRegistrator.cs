@@ -30,8 +30,14 @@ namespace Jellyfin.Plugin.OpenLibrary
                 .SetHandlerLifetime(TimeSpan.FromMinutes(5));
 
             // Register the metadata providers
+            serviceCollection.AddSingleton<OpenLibraryBookLookupService>();
             serviceCollection.AddSingleton<OpenLibraryProvider>();
             serviceCollection.AddSingleton<IRemoteMetadataProvider<Person, PersonLookupInfo>, OpenLibraryPersonProvider>();
+            serviceCollection.AddSingleton<IRemoteMetadataProvider<AudioBook, SongInfo>, OpenLibraryAudioBookProvider>();
+
+            // Register the image providers
+            serviceCollection.AddSingleton<IRemoteImageProvider, OpenLibraryPersonImageProvider>();
+            serviceCollection.AddSingleton<IRemoteImageProvider, OpenLibraryBookImageProvider>();
         }
     }
 }
